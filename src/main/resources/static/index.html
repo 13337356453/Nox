@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nox Control Panel</title>
+    <!-- 引入样式文件 -->
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<!-- 左侧边栏：连接列表与管理按钮 -->
+<div class="left">
+    <div class="left-header">
+        <!-- 添加/修改/删除连接按钮 -->
+        <button id="addBtn" onclick="addConn()">Add</button>
+        <button id="modifyBtn" onclick="modifyConn()" disabled>Modify</button>
+        <button id="removeBtn" onclick="removeConn()" disabled>Remove</button>
+    </div>
+
+    <!-- 连接列表容器，由 JS 动态渲染 -->
+    <div class="conn-list" id="connList"></div>
+</div>
+
+<!-- 右侧主区域：Tab 切换与内容面板 -->
+<div class="right">
+    <div class="tabs">
+        <!-- Information Collection Tab -->
+        <div class="tab unlocked active" data-tab="info" onclick="showTab('info')">
+            <span class="tab-label">Information Collection</span>
+        </div>
+        <!-- Code Execution Tab -->
+        <div class="tab unlocked" data-tab="exec" onclick="openExecTab()">
+            <span class="tab-label">Code Execution</span>
+        </div>
+        <!-- File Manager Tab -->
+        <div class="tab unlocked" data-tab="file" onclick="openFileTab()">
+            <span class="tab-label">File Manager</span>
+        </div>
+        <!-- Memory Injection Tab（未实现） -->
+        <div class="tab unlocked" data-tab="mem" onclick="alert('没做')">
+            <span class="tab-label">Memory Injection</span>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- 信息收集面板 -->
+        <div id="info" class="panel active">
+            <div class="info-box" id="infoBox">
+                <pre class="info-pre">Select a connection and double click it to load information.</pre>
+            </div>
+        </div>
+
+        <!-- 命令执行终端面板 -->
+        <div id="exec" class="panel">
+            <div class="terminal">
+                <!-- 终端输出区域 -->
+                <div class="terminal-output" id="output"></div>
+                <!-- 命令输入行 -->
+                <div class="terminal-input">
+                    <span id="prompt"></span>
+                    <input id="cmd" onkeydown="handleCmd(event)" placeholder="Type command and press Enter">
+                    <button class="submit-btn" onclick="submitCmd()">Submit</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文件管理器面板 -->
+        <div id="file" class="panel">
+            <div class="file-manager">
+                <div class="file-toolbar">
+                    <div class="file-path-bar">
+                        <button class="file-btn" onclick="navigateUp()">↑ Parent</button>
+                        <input class="file-path-input" id="currentPath" value="/" onkeydown="handlePathKey(event)">
+                        <button class="file-btn" onclick="refreshFileList()">Refresh</button>
+                    </div>
+                    <div class="file-actions">
+                        <input type="file" id="uploadInput" style="display:none" onchange="handleUpload(this)">
+                        <button class="file-btn" onclick="document.getElementById('uploadInput').click()">Upload</button>
+                    </div>
+                </div>
+                <div class="file-list-container">
+                    <table class="file-table" id="fileTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Size</th>
+                                <th>Modified</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fileTableBody"></tbody>
+                    </table>
+                    <div class="file-empty" id="fileEmpty">Select a connection and open it to browse files.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 内存注入面板（占位） -->
+        <div id="mem" class="panel">
+            <div class="info-box">
+                Memory Trojan Injection Module<br><br>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 文件编辑器弹窗 -->
+<div id="editorModal" class="editor-modal">
+    <div class="editor-panel">
+        <div class="editor-header">
+            <span id="editorFileName">file.txt</span>
+            <div class="editor-btns">
+                <button class="file-btn file-btn-primary" onclick="saveFile()">Save</button>
+                <button class="file-btn" onclick="closeEditor()">Close</button>
+            </div>
+        </div>
+        <div class="editor-body">
+            <textarea id="editorTextarea" class="editor-textarea" placeholder="File content..."></textarea>
+        </div>
+        <div class="editor-status" id="editorStatus"></div>
+    </div>
+</div>
+
+<!-- 引入前端逻辑脚本，v=2 用于强制刷新缓存 -->
+<script src="/js/app.js?v=4"></script>
+</body>
+</html>

